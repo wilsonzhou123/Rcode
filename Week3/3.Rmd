@@ -1,0 +1,268 @@
+---
+title: "Assignment 3"
+author: "noobwei"
+date: "2023-10-09"
+output: html_document # you can change to other output format if you want
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Exploratory data analysis
+
+```{r,echo=FALSE}
+library(Stat2Data)
+data('Hawks')
+head(Hawks)
+```
+
+## 1.1 (Q1)
+
+```{r,echo=FALSE}
+Hawkstail <- Hawks[,'Tail']
+head(Hawkstail)
+print(mean(Hawkstail,na.rm = FALSE))
+print(median(Hawkstail,na.rm = FALSE))
+```
+
+## 1.2 (Q1)
+
+```{r,echo=FALSE}
+library(dplyr)
+summary_stats1 <- Hawks %>%
+  summarise(
+    Wing_mean = mean(Wing,na.rm=TRUE),
+    Wing_t_mean = mean(Wing,trim=0.5,na.rm=TRUE),
+    Wing_med = median(Wing,na.rm=TRUE),
+    Weight_mean = mean(Weight,na.rm=TRUE),
+    Weight_t_mean = mean(Weight,trim=0.5,na.rm=TRUE),
+    Weight_md = median(Weight,na.rm=TRUE)
+  )
+head(summary_stats1)
+```
+
+## 1.2 (Q2)
+
+```{r,echo=FALSE}
+summary_stats2 <- Hawks %>%
+  group_by(Species) %>%
+  summarise(
+    Wing_mean = mean(Wing,na.rm=TRUE),
+    Wing_t_mean = mean(Wing,trim=0.5,na.rm=TRUE),
+    Wing_med = median(Wing,na.rm=TRUE),
+    Weight_mean = mean(Weight,na.rm=TRUE),
+    Weight_t_mean = mean(Weight,trim=0.5,na.rm=TRUE),
+    Weight_md = median(Weight,na.rm=TRUE)
+  )
+head(summary_stats2)
+```
+
+### 1.4
+
+```{r,echo=FALSE}
+hal<-Hawks$Hallux # Extract the vector of hallux lengths
+hal<-hal[!is.na(hal)] # Remove any nans
+outlier_val<-100
+num_outliers<-10
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+print(mean(hal))
+print(mean(corrupted_hal))
+
+```
+
+## Q1
+
+```{r,echo=FALSE}
+num_outliers_vect <- seq(0,1000)
+means_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+means_vect <- c(means_vect, mean(corrupted_hal))
+}
+
+num_outliers_vect <- seq(0,1000)
+medians_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+medians_vect <- c(medians_vect, median(corrupted_hal))
+}
+head(medians_vect)
+```
+
+## Q2
+
+```{r,echo=FALSE}
+num_outliers_vect <- seq(0,1000)
+t_means_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+t_means_vect <- c(t_means_vect, mean(corrupted_hal))
+}
+head(t_means_vect)
+```
+
+## Q3
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(tidyr)
+df_means_medians <- data.frame(num_outliers=num_outliers_vect, mean=means_vect,t_mean=t_means_vect, median=medians_vect)
+
+df_means_medians %>%
+  pivot_longer(!num_outliers, names_to = "Estimator", values_to = "Value") %>%
+  ggplot(aes(x=num_outliers,color=Estimator,linetype=Estimator,y=Value)) + geom_line() + xlab("Number of outliers")
+
+```
+
+### 1.5
+## Q1
+```{r,echo=FALSE}
+
+ggplot(Hawks, aes(x = Species, y = Weight)) +
+  geom_boxplot() +
+  labs( x = "Species", y = "Weight")
+```
+## Q2
+# Compute quantiles
+```{r,echo=FALSE}
+quantiles <- Hawks %>%
+  group_by(Species) %>%
+  summarise(
+    Quantile_25 = quantile(Weight, probs = 0.25, na.rm = TRUE),
+    Median = median(Weight, na.rm = TRUE),
+    Quantile_75 = quantile(Weight, probs = 0.75, na.rm = TRUE)
+  )
+
+# Rename Species for clarity
+quantiles$Species <- factor(quantiles$Species)
+
+# Print the results
+print(quantiles)
+```
+## Q3
+```{r,echo=FALSE}
+num_outliers <- function(x) {
+  x <- na.omit(x)
+  q25 <- quantile(x, 0.25)
+  q75 <- quantile(x, 0.75)
+  iqr <- q75 - q25
+  lower_bound <- q25 - 1.5 * iqr
+  upper_bound <- q75 + 1.5 * iqr
+  outliers <- x[x < lower_bound | x > upper_bound]
+  return(length(outliers))
+}
+print(num_outliers( c(0, 40,60,185)))
+```
+
+## Q4
+```{r,echo=FALSE}
+summary_stats3 <- Hawks %>%
+  group_by(Species) %>%
+  summarise(
+    num_outliers_weight = num_outliers(Weight)
+  )
+head(summary_stats3)
+```
+# 2. Random experiments, events and sample spaces, and the set theory
+
+# 3. Visualisation
+
+## Q1
+```{r,echo=FALSE}
+library(ggplot2)
+ggplot(Hawks, aes(x = Tail, color = Species)) +
+  geom_density(alpha = 0.5) +
+  labs(
+    x = "Tail",
+    y = "Density"
+  ) +
+  scale_color_manual(values = c("red", "blue", "green")) +
+  theme_minimal()
+```
+## Q2
+```{r,echo=FALSE}
+library(ggplot2)
+library(ggplot2)
+
+
+ggplot(Hawks, aes(x = Tail, y = Species, fill = Species)) +
+  geom_violin(trim = FALSE) +
+  labs(
+    x = "Density",
+    y = "Tail"
+  ) +
+  scale_fill_manual(values = c("red", "green", "blue")) +
+  theme_minimal()
+```
+## Q3
+```{r,echo=FALSE}
+library(ggplot2)
+
+# Create a scatter plot
+ggplot(Hawks, aes(x = Tail, y = Weight, color = Species)) +
+  geom_point() +
+  labs(
+    x = "Tail",
+    y = "Weight",
+    color = "Species"
+  ) +
+  scale_color_manual(values = c("red", "blue", "green")) +
+  theme_minimal()
+```
+
+### Q4
+```{r,echo=FALSE}
+library(ggplot2)
+
+# Create the plot with facets and different scales
+ggplot(Hawks, aes(x = Tail, y = Weight, color = Species)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    x = "Tail",
+    y = "Weight",
+    color = "Species"
+  ) +
+  scale_color_manual(values = c("red", "blue", "green")) +
+  facet_wrap(~Species, scales = "free_y") +
+  theme_minimal()
+
+```
+### Q5
+```{r,echo=FALSE}
+library(ggplot2)
+
+# Compute the Weight and Tail of the heaviest hawk
+heaviest_hawk <- Hawks %>%
+  filter(Weight == max(Weight, na.rm = TRUE)) %>%
+  select(Weight, Tail)
+
+# Create a scatter plot
+gg <- ggplot(Hawks, aes(x = Tail, y = Weight, color = Species)) +
+  geom_point() +
+  labs(
+    title = "Scatter Plot of Hawk Tail Length vs. Weight by Species",
+    x = "Tail Length",
+    y = "Weight",
+    color = "Species"
+  ) +
+  scale_color_manual(values = c("red", "blue", "green")) +
+  theme_minimal()
+
+# Add an arrow and annotation for the heaviest hawk
+gg + geom_segment(
+  data = heaviest_hawk,
+  aes(x = Tail, xend = 220, y = Weight, yend = 1700),
+  arrow = arrow(type = "closed", length = unit(0.3, "inches")),
+  color = "black"
+) +
+annotate(
+  geom = "text",
+  x = 225,
+  y = 1720,
+  label = "Heaviest Hawk",
+  hjust = 0
+)
+
+```

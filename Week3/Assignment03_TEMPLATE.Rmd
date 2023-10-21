@@ -1,0 +1,385 @@
+---
+title: "Assignment 3"
+author: "Insert My Name"
+date: "2023-10-09"
+output: html_document # you can change to other output format if you want
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Exploratory data analysis
+```{r}
+library(Stat2Data)
+data("Hawks")
+head(Hawks)
+```
+
+
+## 1.1 (Q1)   
+
+<!-- Include your answers for each question under a second level heading eg ## 1.1 (Q1) -->
+**** insert your solutions here *****
+```{r}
+HawksTail <- Hawks[["Tail"]]
+head(HawksTail)
+print(mean(HawksTail))
+print(median(HawksTail))
+
+```
+
+
+## 1.2 (Q1)
+```{r}
+library(dplyr)
+Hawksum <- Hawks %>%  
+  summarize(
+  Wing_mean = mean(Wing,na.rm = TRUE),
+  Wing_t_mean = mean(Wing,t=0.5,na.rm = TRUE),
+  Wing_med = median(Wing,na.rm = TRUE),
+  Weight_mean = mean(Weight,na.rm = TRUE),
+  Weight_t_mean = mean(Weight,t=0.5,na.rm = TRUE),
+  Weight_med = median(Weight,na.rm = TRUE))
+
+head(Hawksum)
+```
+
+## 1.2 (Q2)
+```{r}
+Hawksum1 <- Hawks %>%
+group_by(Species) %>%
+summarise(
+  Wing_mean = mean(Wing,na.rm = TRUE),
+  Wing_t_mean = mean(Wing,t=0.5,na.rm = TRUE),
+  Wing_med = median(Wing,na.rm = TRUE),
+  Weight_mean = mean(Weight,na.rm = TRUE),
+  Weight_t_mean = mean(Weight,t=0.5,na.rm = TRUE),
+  Weight_med = median(Weight,na.rm = TRUE))
+
+head(Hawksum1)
+```
+
+
+## 1.3 (Q1)
+aA+b
+```{r}
+print(2*mean(HawksTail) + 3)
+print(mean(2*HawksTail+3))
+```
+
+
+## 1.3 (Q2)
+a^2p
+|a|q
+```{r}
+print(4*var(HawksTail))
+print(var(2*HawksTail+3))
+
+print(2*sd(HawksTail))
+print(sd(2*HawksTail+3))
+```
+## 1.4 (Q1)
+```{r}
+hal<-Hawks$Hallux # Extract the vector of hallux lengths
+hal<-hal[!is.na(hal)] # Remove any nans
+
+outlier_val<-100
+num_outliers<-10
+corrupted_hal<-c(hal,rep(outlier_val,times=num_outliers))
+
+mean(hal)
+mean(corrupted_hal)
+
+
+num_outliers_vect <- seq(0,1000)
+means_vect <- c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+means_vect <- c(means_vect, mean(corrupted_hal))
+}
+
+head(means_vect)
+
+```
+```{r}
+num_outliers_vect <- seq(0,1000)
+medians_vect <-c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+medians_vect <-c(medians_vect, median(corrupted_hal))
+}
+head(medians_vect)
+```
+
+
+
+## 1.4 (Q2)
+```{r}
+num_outliers_vect <- seq(0,1000)
+t_means_vect <-c()
+for(num_outliers in num_outliers_vect){
+corrupted_hal <- c(hal,rep(outlier_val,times=num_outliers))
+t_means_vect <- c(t_means_vect, mean(corrupted_hal,t=0.1))
+}
+
+head(t_means_vect)
+```
+
+## 1.4 (Q3)
+```{r}
+library(tidyr)
+library(ggplot2)
+
+
+
+df_means_medians <- data.frame(num_outliers=num_outliers_vect, mean=means_vect,
+t_mean=t_means_vect, median=medians_vect)
+
+df_means_medians %>%
+pivot_longer(!num_outliers, names_to = "Estimator", values_to = "Value") %>%
+ggplot(aes(x=num_outliers,color=Estimator, linetype=Estimator,y=Value)) +
+geom_line()+xlab("Number of outliers")
+```
+
+
+## 1.5 (Q1)
+```{r}
+ggplot(data=Hawks,aes(x=Species, y=Weight)) +
+geom_boxplot()+xlab("Species") + ylab("Weight")
+```
+
+## 1.5 (Q2)
+```{r}
+probabilities <- c(0.25, 0.5, 0.75)
+
+quantiles <- Hawks %>% 
+  select(Weight, Species) %>%
+  filter(!is.na(Weight) & is.numeric(Weight)) %>%
+  group_by(Species) %>%
+  summarize(
+    quantile025 = quantile(Weight, probs = probabilities[1], na.rm = TRUE),
+    quantile050 = quantile(Weight, probs = probabilities[2], na.rm = TRUE),
+    quantile075 = quantile(Weight, probs = probabilities[3], na.rm = TRUE)
+  )
+
+
+quantiles 
+
+
+
+
+```
+
+## 1.5 (Q3)
+```{r}
+num_outliers <- function(x) {
+  q25 <- quantile(x, probs = 0.25, na.rm = TRUE)
+  q75 <- quantile(x, probs = 0.75, na.rm = TRUE)
+  iqr <- q75 - q25
+  outliers <- sum(x < q25 - 1.5 * iqr | x > q75 + 1.5 * iqr, na.rm = TRUE)
+  return(outliers)
+}
+
+# Test the function
+num_outliers(c(0, 40, 60, 185))
+
+
+```
+## 1.5 (Q4)
+```{r}
+num_outliers_table <- Hawks %>%
+  group_by(Species) %>%
+  summarise(
+    num_outliers_weight = num_outliers(Weight)
+  )
+
+num_outliers_table
+
+```
+
+## 1.6 (Q1)
+```{r}
+Covar <- cov(Hawks$Weight, Hawks$Wing, use = "complete.obs")
+Corre <- cor(Hawks$Weight, Hawks$Wing, use = "complete.obs")
+
+print(Covar)
+print(Corre)
+```
+
+## 1.6 (Q2)
+S' = acS
+R' = S/sd(x)*sd(y)
+```{r}
+a <- 2.4
+b <- 7.1
+c <- -1
+d <- 3
+X <- Hawks$Weight
+Y <- Hawks$Wing
+X_tilde <- a * Hawks$Weight + b
+Y_tilde <- c * Hawks$Wing + d
+
+print(a*c*cov(X, Y,use = "complete.obs"))
+print(cov(X_tilde, Y_tilde,use = "complete.obs"))
+
+print(cor(X, Y,use = "complete.obs"))
+print(cor(X_tilde, Y_tilde,use = "complete.obs"))
+
+
+```
+
+
+
+
+
+
+# 2. Random experiments, events and sample spaces, and the set theory
+## 2.1 (Q1)
+The concepts of random experiments, event, and sample space
+1. A random experiment is a procedure (real or imagined) which:
+a). has a well-defined set of possible outcomes;
+b). could (at least in principle) be repeated arbitrarily many times.
+Examples: A coin flip for a coin (outcomes: Heads up, tails up)
+2. An event is a set (i.e. a collection) of possible outcomes of an experiment
+Example: heads up; tails up; heads up or tails up
+It is important to note that an event is different from a outcome (although an event may
+contain a single outcome).
+3. A sample space is the set of all possible outcomes of interest for a random experiment
+Example: heads up, tails up
+
+
+
+## 2.1 (Q2)
+Event: Getting a sum of 7 on the two rolls. This event is represented as {(1, 6), (2, 5), (3, 4), (4, 3), (5, 2), (6, 1)}.
+
+The sample space for this random experiment can be written as a set Ω, which contains all possible outcomes. The sample space Ω in this case consists of all possible pairs of outcomes from two rolls of a six-sided die:
+
+Ω = {(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (2, 1), (2, 2), ..., (6, 5), (6, 6)}, the total number is 36
+
+The empty set (∅), which represents an event with no outcomes, can be considered as an event. It's referred to as the "null event" or the "impossible event." 
+
+## 2.2 (Q1)
+AUB = {1,2,3,4,6}; AUC ={1,2,3,4,5,6}
+A∩B = {2} A∩C = {}
+A\B = {1,3} A\C ={1,2,4}
+No, Yes
+Yes
+{1,2,4},{3,5,6}; {1,2},{3,4},{5,6}
+## 2.2 (Q2)
+Expression for (A^c)^c:
+The complement of a complement is the original set itself. So, (A^c)^c = A.
+
+What is Ω^c:
+The complement of the entire sample space Ω is the empty set (the set with no elements), denoted as ∅. So, Ω^c = ∅.
+
+Subsets:
+If A ⊆ B (A is a subset of B), then for any element x in the complement of B (x ∈ B^c), it must be the case that x is also in the complement of A (x ∈ A^c). In other words, B^c ⊆ A^c.
+
+De Morgan's Laws:
+a. Intersection Law: (A ∩ B)^c = A^c ∪ B^c. This means that the complement of the intersection of two events is equal to the union of their complements.
+b. General Case for a Sequence of Events: For a sequence of events A1, A2, ..., AK ⊆ Ω, the complement of the intersection of these events is the union of the complements: (∩(from k=1 to K) Ak)^c = ∪(from k=1 to K) A^c.
+
+De Morgan's Laws:
+a. Union Law: (A ∪ B)^c = A^c ∩ B^c. This means that the complement of the union of two events is equal to the intersection of their complements.
+b. General Case for a Sequence of Events: For a sequence of events A1, A2, ..., AK ⊆ Ω, the complement of the union of these events is the intersection of the complements: (∪(from k=1 to K) Ak)^c = ∩(from k=1 to K) A^c.
+## 2.2 (Q3)
+2^k
+## 2.2 (Q4)
+ A = ∅
+ 
+The events S1, S2, S3, S4 form a partition of A1 ∪ A2 ∪ A3 ∪ A4 if:
+They are mutually exclusive (disjoint): For all i ≠ j, Si ∩ Sj = ∅, which means that no two of them share any elements.
+Their union covers the entire set A1 ∪ A2 ∪ A3 ∪ A4: ∪(i=1 to 4) Si = A1 ∪ A2 ∪ A3 ∪ A4. This means that the union of the S events includes all elements from the A events.
+## 2.2 (Q5)
+1A^c = 1- 1A
+B = A ∪ A^c
+
+
+## 2.2 (Q6)
+
+# 3. Visualisation
+
+## 3 (Q1)
+```{r}
+ggplot(data=Hawks, aes(x=Tail, color=Species))+
+  geom_density()+theme_bw()+xlab("Tail (mm)")+ylab("Density")
+```
+
+## 3 (Q2)
+```{r}
+library(ggplot2)
+
+ggplot(data = Hawks, aes(x = Tail, y = Species, color = Species, fill = Species)) +
+  geom_violin(color = "black", size = 0.5) +  # 设置边框为黑色
+  theme_bw() +
+  xlab("Tail (mm)") +
+  ylab("Density")
+
+```
+
+## 3 (Q3)
+```{r}
+ggplot(data = Hawks, aes(y = Weight, x = Tail, color = Species, shape = Species)) +
+  geom_point(size = 2) +
+  xlab("Tail (mm)") +
+  ylab("Weight (mm)")
+  
+```
+
+## 3 (Q4)
+```{r}
+
+ggplot(data = Hawks, aes(y = Weight, x = Tail, color = Species)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Species, scales = "free") +
+  xlab("Tail (mm)") +
+  ylab("Weight (mm)") +
+  theme_minimal()
+
+
+```
+
+## 3 (Q5)
+
+# Find the heaviest hawk
+heaviest_hawk <- Hawks %>%
+  filter(Weight == max(Weight, na.rm = TRUE)) %>%
+  select(Weight, Tail, Species)
+
+# Your existing plot code
+ggplot(data = Hawks, aes(y = Weight, x = Tail, color = Species, shape = Species)) +
+  geom_point(size = 2) +
+  xlab("Tail (mm)") +
+  ylab("Weight (mm)") +
+
+```{r}
+library(ggplot2)
+
+
+# Find the heaviest hawk
+heaviest_hawk <- Hawks %>%
+  filter(Weight == max(Weight, na.rm = TRUE)) %>%
+  select(Weight, Tail, Species)
+
+# Create the scatter plot
+plot <- ggplot(data = Hawks, aes(y = Weight, x = Tail, color = Species)) +
+  geom_point(size = 2) +
+  xlab("Tail (mm)") +
+  ylab("Weight (mm)")
+
+plot_with_arrow <- plot +
+  geom_curve(data = heaviest_hawk, aes(x = Tail, y = Weight - 200, xend = Tail, yend = Weight),
+             arrow = arrow(type = "closed", length = unit(0.1, "inches"), ends = "last", angle = 15),
+             color = "black") +
+  geom_text(data = heaviest_hawk, aes(label = "heaviest hawk", x = Tail, y = Weight - 220),color ="black") +
+  theme(legend.position = "none")
+
+# Print the plot with the arrow and annotation
+print(plot_with_arrow)
+
+
+
+```
+
